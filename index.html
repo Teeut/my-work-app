@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111a32">
+  <title>구름배달부와 별빛 계곡 — Stage 1</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+      background: #10172b;
+      color: #eef4ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      padding: 28px 18px;
+      background:
+        radial-gradient(ellipse at 50% 0%, rgba(84, 121, 205, .2), transparent 48%),
+        #10172b;
+    }
+
+    button { font: inherit; }
+
+    .shell { width: min(100%, 1080px); margin: 0 auto; }
+
+    .header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 15px;
+    }
+
+    .brand { display: flex; align-items: center; gap: 13px; }
+
+    .brand-icon {
+      display: grid;
+      width: 48px;
+      height: 48px;
+      place-items: center;
+      border: 1px solid rgba(255, 215, 115, .45);
+      background: rgba(255, 205, 95, .09);
+      color: #ffd773;
+      font-size: 24px;
+      box-shadow: 0 0 25px rgba(255, 193, 91, .12);
+    }
+
+    .eyebrow {
+      margin: 0 0 3px;
+      color: #8e9dbd;
+      font: 10px "Courier New", monospace;
+      letter-spacing: .17em;
+    }
+
+    h1 {
+      margin: 0;
+      color: #f5f7ff;
+      font-size: clamp(20px, 3.6vw, 29px);
+      letter-spacing: -.045em;
+    }
+
+    h1 span { color: #ffd773; }
+
+    .chapter {
+      padding: 9px 12px;
+      border: 1px solid rgba(144, 164, 205, .19);
+      background: rgba(15, 23, 43, .76);
+      color: #bac6dc;
+      font: 11px "Courier New", monospace;
+      letter-spacing: .09em;
+      white-space: nowrap;
+    }
+
+    .hud {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 9px;
+      margin-bottom: 10px;
+    }
+
+    .hud-card {
+      min-width: 0;
+      padding: 9px 13px;
+      border: 1px solid rgba(144, 164, 205, .16);
+      background: rgba(17, 26, 48, .82);
+    }
+
+    .hud-label {
+      display: block;
+      margin-bottom: 2px;
+      color: #8291af;
+      font: 9px "Courier New", monospace;
+      letter-spacing: .12em;
+    }
+
+    .hud-value {
+      display: block;
+      color: #f5f7ff;
+      font: 900 clamp(16px, 2.4vw, 22px) "Courier New", monospace;
+      letter-spacing: .07em;
+      white-space: nowrap;
+    }
+
+    #coinHud { color: #ffd773; }
+    #lifeHud { color: #ff8296; }
+
+    .screen {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(153, 183, 238, .3);
+      background: #a7d8f1;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, .3), 0 0 35px rgba(114, 180, 238, .08);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 16 / 9;
+      image-rendering: pixelated;
+      touch-action: none;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      background: rgba(14, 23, 44, .72);
+      text-align: center;
+      backdrop-filter: blur(3px);
+    }
+
+    .overlay[hidden] { display: none; }
+
+    .dialog {
+      width: min(100%, 460px);
+      padding: clamp(20px, 4vw, 32px);
+      border: 1px solid rgba(255, 215, 115, .42);
+      background: rgba(18, 28, 51, .96);
+      box-shadow: 0 18px 55px rgba(0, 0, 0, .3);
+    }
+
+    .dialog-tag {
+      color: #ffd773;
+      font: 10px "Courier New", monospace;
+      letter-spacing: .18em;
+    }
+
+    .dialog h2 {
+      margin: 11px 0 8px;
+      color: #f5f7ff;
+      font-size: clamp(28px, 6vw, 42px);
+      line-height: 1;
+    }
+
+    .dialog p {
+      margin: 0 0 18px;
+      color: #b6c3d9;
+      font-size: 13px;
+      line-height: 1.8;
+      word-break: keep-all;
+    }
+
+    .play-button {
+      min-width: 150px;
+      padding: 12px 20px;
+      border: 1px solid #ffd773;
+      background: #ffd773;
+      color: #17213a;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 800;
+      transition: transform .15s, background .15s;
+    }
+
+    .play-button:hover { transform: translateY(-2px); background: #ffe6a3; }
+    .play-button:focus-visible, .pause-button:focus-visible { outline: 2px solid white; outline-offset: 3px; }
+
+    .below {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding-top: 12px;
+    }
+
+    .controls, .legend {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 7px;
+      color: #a1aec6;
+      font-size: 11px;
+    }
+
+    .key {
+      padding: 4px 7px;
+      border: 1px solid rgba(144, 164, 205, .22);
+      background: rgba(23, 33, 57, .86);
+      color: #e6ecf8;
+      font: 10px "Courier New", monospace;
+    }
+
+    .legend { justify-content: flex-end; color: #8998b4; }
+
+    .pause-button {
+      padding: 7px 10px;
+      border: 1px solid rgba(144, 164, 205, .24);
+      background: transparent;
+      color: #bdc9dc;
+      cursor: pointer;
+      font-size: 11px;
+    }
+
+    .pause-button[hidden] { display: none; }
+
+    @media (max-width: 600px) {
+      body { padding: 18px 10px; }
+      .header { align-items: center; }
+      .brand-icon { width: 39px; height: 39px; }
+      .chapter { padding: 7px 8px; font-size: 9px; }
+      .hud { gap: 5px; }
+      .hud-card { padding: 8px 7px; }
+      .hud-label { font-size: 8px; letter-spacing: .05em; }
+      .below { align-items: flex-start; }
+      .legend { display: none; }
+      .controls { gap: 5px; font-size: 10px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="header">
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true">✦</div>
+        <div>
+          <p class="eyebrow">CLOUD COURIER · FIELD JOURNAL</p>
+          <h1>구름배달부와 <span>별빛 계곡</span></h1>
+        </div>
+      </div>
+      <div class="chapter">STAGE 01 · 계곡 입구</div>
+    </header>
+
+    <section class="hud" aria-label="게임 정보">
+      <div class="hud-card"><span class="hud-label">SCORE</span><span class="hud-value" id="scoreHud">000000</span></div>
+      <div class="hud-card"><span class="hud-label">SHARDS</span><span class="hud-value" id="coinHud">✦ 00</span></div>
+      <div class="hud-card"><span class="hud-label">ENERGY</span><span class="hud-value" id="lifeHud">♥♥♥</span></div>
+      <div class="hud-card"><span class="hud-label">DISTANCE</span><span class="hud-value" id="distanceHud">00%</span></div>
+    </section>
+
+    <div class="screen">
+      <canvas id="game" width="960" height="540" tabindex="0" aria-label="별빛 계곡 횡스크롤 플랫폼 게임">
+        게임을 플레이하려면 캔버스를 지원하는 브라우저가 필요합니다.
+      </canvas>
+      <div class="overlay" id="overlay">
+        <div class="dialog">
+          <span class="dialog-tag" id="dialogTag">STAGE 01 · 별빛 계곡</span>
+          <h2 id="dialogTitle">배달 출발!</h2>
+          <p id="dialogText">별빛 조각을 모으며 계곡 끝의 전망대까지 달려가세요.<br>수풀 생물은 머리 위에서 밟으면 물러납니다.</p>
+          <button class="play-button" id="playButton" type="button">모험 시작</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="below">
+      <div class="controls" aria-label="조작법">
+        <span class="key">←</span><span class="key">→</span><span>이동</span>
+        <span class="key">SPACE</span><span>점프</span>
+        <span class="key">P</span><span>일시정지</span>
+      </div>
+      <div class="legend">
+        <span>✦ 별빛 조각</span>
+        <span>·</span>
+        <span>● 수풀 생물</span>
+        <button class="pause-button" id="pauseButton" type="button" hidden>일시정지</button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const canvas = document.getElementById("game");
+      const ctx = canvas.getContext("2d");
+      const overlay = document.getElementById("overlay");
+      const dialogTag = document.getElementById("dialogTag");
+      const dialogTitle = document.getElementById("dialogTitle");
+      const dialogText = document.getElementById("dialogText");
+      const playButton = document.getElementById("playButton");
+      const pauseButton = document.getElementById("pauseButton");
+      const scoreHud = document.getElementById("scoreHud");
+      const coinHud = document.getElementById("coinHud");
+      const lifeHud = document.getElementById("lifeHud");
+      const distanceHud = document.getElementById("distanceHud");
+
+      const W = canvas.width;
+      const H = canvas.height;
+      const WORLD_WIDTH = 5600;
+      const FLOOR_Y = 460;
+      const GRAVITY = 0.62;
+      const keys = new Set();
+      const camera = { x: 0 };
+      let state = "ready";
+      let score = 0;
+      let shards = 0;
+      let lives = 3;
+      let lastTime = 0;
+      let animTime = 0;
+      let particles = [];
+      let scenery = [];
+      let player;
+      let platforms;
+      let collectibles;
+      let enemies;
+      let checkpoints;
+      let goal;
+
+      function makeLevel() {
+        platforms = [
+          { x: 0, y: FLOOR_Y, w: 690, h: 90 },
+          { x: 800, y: FLOOR_Y, w: 690, h: 90 },
+          { x: 1600, y: FLOOR_Y, w: 580, h: 90 },
+          { x: 2290, y: FLOOR_Y, w: 620, h: 90 },
+          { x: 3020, y: FLOOR_Y, w: 610, h: 90 },
+          { x: 3740, y: FLOOR_Y, w: 700, h: 90 },
+          { x: 4540, y: FLOOR_Y, w: 1060, h: 90 },
+          { x: 240, y: 370, w: 150, h: 20 },
+          { x: 495, y: 305, w: 140, h: 20 },
+          { x: 900, y: 380, w: 165, h: 20 },
+          { x: 1160, y: 320, w: 160, h: 20 },
+          { x: 1710, y: 365, w: 150, h: 20 },
+          { x: 1950, y: 300, w: 160, h: 20 },
+          { x: 2380, y: 365, w: 140, h: 20 },
+          { x: 2610, y: 305, w: 170, h: 20 },
+          { x: 3120, y: 370, w: 150, h: 20 },
+          { x: 3370, y: 305, w: 160, h: 20 },
+          { x: 3860, y: 365, w: 160, h: 20 },
+          { x: 4150, y: 300, w: 170, h: 20 },
+          { x: 4680, y: 365, w: 170, h: 20 },
+          { x: 4970, y: 305, w: 190, h: 20 }
+        ];
+
+        const shardPositions = [
+          [170, 415], [275, 330], [345, 330], [530, 265], [590, 265],
+          [735, 404], [865, 410], [960, 340], [1010, 340], [1230, 275],
+          [1290, 275], [1510, 408], [1660, 405], [1760, 325], [1815, 325],
+          [2010, 255], [2070, 255], [2230, 405], [2360, 410], [2440, 325],
+          [2670, 260], [2730, 260], [2940, 410], [3070, 410], [3170, 330],
+          [3430, 260], [3490, 260], [3685, 408], [3810, 410], [3910, 325],
+          [4200, 255], [4260, 255], [4480, 410], [4630, 410], [4740, 325],
+          [5030, 260], [5090, 260], [5270, 410], [5420, 410]
+        ];
+        collectibles = shardPositions.map(([x, y], id) => ({ x, y, id, taken: false, phase: id * 0.71 }));
+
+        enemies = [
+          { x: 575, y: FLOOR_Y - 29, min: 520, max: 650, dir: 1, alive: true, speed: 0.72 },
+          { x: 1010, y: FLOOR_Y - 29, min: 850, max: 1370, dir: -1, alive: true, speed: 0.82 },
+          { x: 1840, y: FLOOR_Y - 29, min: 1640, max: 2110, dir: 1, alive: true, speed: 0.9 },
+          { x: 2510, y: FLOOR_Y - 29, min: 2320, max: 2850, dir: -1, alive: true, speed: 0.9 },
+          { x: 3290, y: FLOOR_Y - 29, min: 3060, max: 3570, dir: 1, alive: true, speed: 1 },
+          { x: 3990, y: FLOOR_Y - 29, min: 3780, max: 4360, dir: -1, alive: true, speed: 1.05 },
+          { x: 4840, y: FLOOR_Y - 29, min: 4580, max: 5400, dir: 1, alive: true, speed: 1.1 }
+        ];
+
+        checkpoints = [
+          { x: 1510, active: false },
+          { x: 2940, active: false },
+          { x: 4480, active: false }
+        ];
+        goal = { x: 5420, y: FLOOR_Y - 92 };
+        scenery = Array.from({ length: 60 }, (_, i) => ({
+          x: (i * 193 + 70) % WORLD_WIDTH,
+          y: 110 + ((i * 71) % 190),
+          r: 1 + (i % 3),
+          phase: i * 0.7
+        }));
+      }
+
+      function newPlayer() {
+        return {
+          x: 70, y: FLOOR_Y - 48, w: 30, h: 42,
+          vx: 0, vy: 0, onGround: false, facing: 1,
+          invulnerable: 0, spawnX: 70
+        };
+      }
+
+      function startGame() {
+        score = 0;
+        shards = 0;
+        lives = 3;
+        camera.x = 0;
+        particles = [];
+        makeLevel();
+        player = newPlayer();
+        updateHud();
+        state = "playing";
+        overlay.hidden = true;
+        pauseButton.hidden = false;
+        canvas.focus({ preventScroll: true });
+        lastTime = performance.now();
+        requestAnimationFrame(loop);
+      }
+
+      function updateHud() {
+        scoreHud.textContent = String(score).padStart(6, "0");
+        coinHud.textContent = `✦ ${String(shards).padStart(2, "0")}`;
+        lifeHud.textContent = "♥".repeat(Math.max(0, lives));
+        distanceHud.textContent = `${String(Math.min(100, Math.floor(player ? player.x / (WORLD_WIDTH - 200) * 100 : 0))).padStart(2, "0")}%`;
+      }
+
+      function showEnd(won) {
+        state = won ? "won" : "over";
+        pauseButton.hidden = true;
+        dialogTag.textContent = won ? "DELIVERY COMPLETE · STAGE 01" : "FIELD REPORT · TRY AGAIN";
+        dialogTitle.textContent = won ? "배달 완료!" : "기운이 다했어요";
+        dialogText.innerHTML = won
+          ? `별빛 계곡을 무사히 건넜어요!<br>별빛 조각 ${shards}개 · 점수 ${String(score).padStart(6, "0")}점`
+          : `모은 별빛 조각 ${shards}개 · 점수 ${String(score).padStart(6, "0")}점<br>다시 도전해 배달을 완료해 보세요.`;
+        playButton.textContent = "다시 도전";
+        overlay.hidden = false;
+      }
+
+      function togglePause() {
+        if (state === "playing") {
+          state = "paused";
+          pauseButton.textContent = "계속하기";
+          dialogTag.textContent = "잠시 숨 고르기";
+          dialogTitle.textContent = "일시정지";
+          dialogText.textContent = "준비되면 모험을 이어가세요.";
+          playButton.textContent = "계속하기";
+          overlay.hidden = false;
+        } else if (state === "paused") {
+          state = "playing";
+          overlay.hidden = true;
+          pauseButton.textContent = "일시정지";
+          lastTime = performance.now();
+          requestAnimationFrame(loop);
+          canvas.focus({ preventScroll: true });
+        }
+      }
+
+      function addParticles(x, y, color, count = 8) {
+        for (let i = 0; i < count; i += 1) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = 0.7 + Math.random() * 2.5;
+          particles.push({
+            x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+            life: .35 + Math.random() * .35, maxLife: .7, color,
+            size: 2 + Math.random() * 3
+          });
+        }
+      }
+
+      function hurtPlayer() {
+        if (player.invulnerable > 0) return;
+        lives -= 1;
+        updateHud();
+        if (lives <= 0) {
+          showEnd(false);
+          return;
+        }
+        player.x = player.spawnX;
+        player.y = FLOOR_Y - player.h - 2;
+        player.vx = 0;
+        player.vy = 0;
+        player.invulnerable = 1.5;
+        camera.x = Math.max(0, Math.min(WORLD_WIDTH - W, player.x - 280));
+      }
+
+      function update(delta) {
+        const scale = Math.min(delta * 60, 2);
+        const direction = (keys.has("ArrowRight") || keys.has("KeyD") ? 1 : 0)
+          - (keys.has("ArrowLeft") || keys.has("KeyA") ? 1 : 0);
+
+        if (direction) {
+          player.facing = direction;
+          player.vx += direction * 0.62 * scale;
+        } else {
+          player.vx *= Math.pow(.78, scale);
+        }
+        player.vx = Math.max(-4.4, Math.min(4.4, player.vx));
+
+        if ((keys.has("Space") || keys.has("ArrowUp") || keys.has("KeyW")) && player.onGround) {
+          player.vy = -11.8;
+          player.onGround = false;
+        }
+
+        const previousBottom = player.y + player.h;
+        player.x += player.vx * scale;
+        player.x = Math.max(0, Math.min(WORLD_WIDTH - player.w, player.x));
+        player.y += player.vy * scale;
+        player.vy = Math.min(13, player.vy + GRAVITY * scale);
+        player.onGround = false;
+
+        for (const platform of platforms) {
+          const overlapsX = player.x + player.w > platform.x && player.x < platform.x + platform.w;
+          const wasAbove = previousBottom <= platform.y + 3;
+          const nowCrossedTop = player.y + player.h >= platform.y;
+          if (overlapsX && wasAbove && nowCrossedTop && player.vy >= 0) {
+            player.y = platform.y - player.h;
+            player.vy = 0;
+            player.onGround = true;
+          }
+        }
+
+        if (player.y > H + 100) {
+          hurtPlayer();
+          if (state !== "playing") return;
+        }
+
+        for (const shard of collectibles) {
+          if (shard.taken) continue;
+          const bob = Math.sin(animTime * 3 + shard.phase) * 3;
+          const dx = player.x + player.w / 2 - shard.x;
+          const dy = player.y + player.h / 2 - (shard.y + bob);
+          if (dx * dx + dy * dy < 23 * 23) {
+            shard.taken = true;
+            shards += 1;
+            score += 100;
+            addParticles(shard.x, shard.y, "#ffe184", 8);
+            updateHud();
+          }
+        }
+
+        if (player.invulnerable > 0) player.invulnerable -= delta;
+
+        for (const enemy of enemies) {
+          if (!enemy.alive) continue;
+          enemy.x += enemy.dir * enemy.speed * scale;
+          if (enemy.x < enemy.min || enemy.x + 30 > enemy.max) enemy.dir *= -1;
+
+          const overlaps = player.x + player.w > enemy.x + 3
+            && player.x < enemy.x + 27
+            && player.y + player.h > enemy.y + 3
+            && player.y < enemy.y + 29;
+          if (!overlaps) continue;
+
+          const previousPlayerBottom = previousBottom;
+          if (player.vy > 0 && previousPlayerBottom <= enemy.y + 12) {
+            enemy.alive = false;
+            player.y = enemy.y - player.h;
+            player.vy = -7.5;
+            score += 250;
+            addParticles(enemy.x + 15, enemy.y + 15, "#9fe29a", 12);
+            updateHud();
+          } else {
+            hurtPlayer();
+            if (state !== "playing") return;
+          }
+        }
+
+        for (const checkpoint of checkpoints) {
+          if (!checkpoint.active && player.x > checkpoint.x) {
+            checkpoint.active = true;
+            player.spawnX = checkpoint.x + 18;
+            score += 150;
+            updateHud();
+            addParticles(checkpoint.x + 14, FLOOR_Y - 49, "#ffda83", 10);
+          }
+        }
+
+        if (player.x + player.w >= goal.x) {
+          score += 500;
+          updateHud();
+          showEnd(true);
+          return;
+        }
+
+        const targetCamera = Math.max(0, Math.min(WORLD_WIDTH - W, player.x - W * .35));
+        camera.x += (targetCamera - camera.x) * Math.min(1, .12 * scale);
+
+        for (let i = particles.length - 1; i >= 0; i -= 1) {
+          const particle = particles[i];
+          particle.x += particle.vx * scale;
+          particle.y += particle.vy * scale;
+          particle.life -= delta;
+          if (particle.life <= 0) particles.splice(i, 1);
+        }
+        updateHud();
+      }
+
+      function drawSky() {
+        const sky = ctx.createLinearGradient(0, 0, 0, H);
+        sky.addColorStop(0, "#83c5eb");
+        sky.addColorStop(.68, "#b8e3ee");
+        sky.addColorStop(1, "#e5e9cf");
+        ctx.fillStyle = sky;
+        ctx.fillRect(0, 0, W, H);
+
+        const sunX = 790 - camera.x * .08;
+        ctx.fillStyle = "rgba(255, 246, 190, .8)";
+        ctx.beginPath();
+        ctx.arc(sunX, 100, 43, 0, Math.PI * 2);
+        ctx.fill();
+
+        for (const hill of [
+          { x: 80, y: 355, rx: 260, ry: 180, color: "#91c5b7", factor: .16 },
+          { x: 520, y: 375, rx: 330, ry: 195, color: "#79b5a8", factor: .2 },
+          { x: 885, y: 360, rx: 280, ry: 175, color: "#8bc4af", factor: .17 }
+        ]) {
+          const x = ((hill.x - camera.x * hill.factor) % (W + 600)) - 200;
+          ctx.fillStyle = hill.color;
+          ctx.beginPath();
+          ctx.ellipse(x, hill.y, hill.rx, hill.ry, 0, Math.PI, 0);
+          ctx.fill();
+        }
+
+        for (const cloud of [
+          { x: 80, y: 90, s: 1 }, { x: 390, y: 135, s: .72 },
+          { x: 730, y: 76, s: .85 }, { x: 1030, y: 155, s: .68 }
+        ]) {
+          const x = ((cloud.x - camera.x * .28) % (W + 220) + W + 220) % (W + 220) - 100;
+          ctx.fillStyle = "rgba(255,255,255,.62)";
+          ctx.beginPath();
+          ctx.ellipse(x, cloud.y, 36 * cloud.s, 13 * cloud.s, 0, 0, Math.PI * 2);
+          ctx.ellipse(x - 20 * cloud.s, cloud.y + 4, 22 * cloud.s, 10 * cloud.s, 0, 0, Math.PI * 2);
+          ctx.ellipse(x + 21 * cloud.s, cloud.y + 5, 24 * cloud.s, 9 * cloud.s, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        for (const star of scenery) {
+          const x = star.x - camera.x * .48;
+          if (x < -5 || x > W + 5) continue;
+          const alpha = .3 + (Math.sin(animTime * 2 + star.phase) + 1) * .28;
+          ctx.fillStyle = `rgba(255,249,205,${alpha})`;
+          ctx.fillRect(x, star.y, star.r, star.r);
+        }
+      }
+
+      function drawPlatforms() {
+        for (const platform of platforms) {
+          const x = platform.x - camera.x;
+          if (x + platform.w < -5 || x > W + 5) continue;
+          ctx.fillStyle = "#705846";
+          ctx.fillRect(x, platform.y, platform.w, platform.h);
+          ctx.fillStyle = "#81bb75";
+          ctx.fillRect(x, platform.y, platform.w, 9);
+          ctx.fillStyle = "#a8d689";
+          ctx.fillRect(x, platform.y, platform.w, 3);
+          ctx.fillStyle = "rgba(42, 48, 47, .2)";
+          for (let bx = x + 12; bx < x + platform.w - 8; bx += 38) {
+            ctx.fillRect(bx, platform.y + 23, 2, 3);
+            ctx.fillRect(bx + 14, platform.y + 53, 2, 3);
+          }
+          ctx.strokeStyle = "rgba(57, 55, 53, .28)";
+          ctx.beginPath();
+          ctx.moveTo(x, platform.y + 40);
+          ctx.lineTo(x + platform.w, platform.y + 40);
+          ctx.stroke();
+        }
+      }
+
+      function drawShards() {
+        for (const shard of collectibles) {
+          if (shard.taken) continue;
+          const x = shard.x - camera.x;
+          if (x < -20 || x > W + 20) continue;
+          const y = shard.y + Math.sin(animTime * 3 + shard.phase) * 3;
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(Math.sin(animTime * 2 + shard.phase) * .13);
+          ctx.shadowColor = "#fff0a1";
+          ctx.shadowBlur = 12;
+          ctx.fillStyle = "#ffe184";
+          ctx.beginPath();
+          ctx.moveTo(0, -9);
+          ctx.lineTo(7, 0);
+          ctx.lineTo(0, 9);
+          ctx.lineTo(-7, 0);
+          ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = "#fff9db";
+          ctx.fillRect(-2, -4, 2, 4);
+          ctx.restore();
+        }
+      }
+
+      function drawCheckpoints() {
+        for (const checkpoint of checkpoints) {
+          const x = checkpoint.x - camera.x;
+          if (x < -40 || x > W + 40) continue;
+          ctx.fillStyle = "#655948";
+          ctx.fillRect(x + 12, FLOOR_Y - 55, 4, 55);
+          ctx.fillStyle = checkpoint.active ? "#ffdc78" : "#dfedf0";
+          ctx.beginPath();
+          ctx.moveTo(x + 16, FLOOR_Y - 53);
+          ctx.lineTo(x + 43, FLOOR_Y - 43);
+          ctx.lineTo(x + 16, FLOOR_Y - 33);
+          ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = "#f4e3a9";
+          ctx.fillRect(x + 5, FLOOR_Y - 4, 18, 4);
+        }
+      }
+
+      function drawGoal() {
+        const x = goal.x - camera.x;
+        ctx.fillStyle = "#6b594a";
+        ctx.fillRect(x, FLOOR_Y - 90, 8, 90);
+        ctx.fillStyle = "#ffda83";
+        ctx.beginPath();
+        ctx.moveTo(x + 8, FLOOR_Y - 88);
+        ctx.lineTo(x + 57, FLOOR_Y - 70);
+        ctx.lineTo(x + 8, FLOOR_Y - 52);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = "#fff1bd";
+        ctx.fillRect(x - 5, FLOOR_Y - 3, 18, 5);
+        ctx.fillStyle = "#554a3d";
+        ctx.font = "bold 11px Courier New";
+        ctx.fillText("GOAL", x - 8, FLOOR_Y - 101);
+      }
+
+      function drawEnemies() {
+        for (const enemy of enemies) {
+          if (!enemy.alive) continue;
+          const x = enemy.x - camera.x;
+          if (x < -40 || x > W + 40) continue;
+          const bob = Math.sin(animTime * 8 + enemy.x) * 1.2;
+          ctx.save();
+          ctx.translate(x, enemy.y + bob);
+          ctx.fillStyle = "#628b65";
+          ctx.beginPath();
+          ctx.ellipse(15, 18, 14, 12, 0, Math.PI, 0);
+          ctx.lineTo(29, 26);
+          ctx.lineTo(1, 26);
+          ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = "#8eb57b";
+          ctx.fillRect(5, 14, 20, 10);
+          ctx.fillStyle = "#fbf5dc";
+          ctx.fillRect(8, 13, 5, 7);
+          ctx.fillRect(19, 13, 5, 7);
+          ctx.fillStyle = "#333c35";
+          ctx.fillRect(10, 16, 2, 3);
+          ctx.fillRect(21, 16, 2, 3);
+          ctx.fillStyle = "#725b48";
+          ctx.fillRect(4, 26, 9, 3);
+          ctx.fillRect(18, 26, 9, 3);
+          ctx.restore();
+        }
+      }
+
+      function drawPlayer() {
+        if (!player) return;
+        if (player.invulnerable > 0 && Math.floor(animTime * 15) % 2 === 0) return;
+        const x = player.x - camera.x;
+        const y = player.y;
+        const moving = Math.abs(player.vx) > .3 && player.onGround;
+        const step = moving ? Math.sin(animTime * 17) * 2 : 0;
+        ctx.save();
+        ctx.translate(x + player.w / 2, y);
+        ctx.scale(player.facing, 1);
+        ctx.translate(-player.w / 2, 0);
+
+        ctx.fillStyle = "#425c82";
+        ctx.fillRect(4, 25 + step, 9, 14 - step);
+        ctx.fillRect(17, 25 - step, 9, 14 + step);
+        ctx.fillStyle = "#334568";
+        ctx.fillRect(2, 37 + step, 12, 5);
+        ctx.fillRect(16, 37 - step, 13, 5);
+
+        ctx.fillStyle = "#f4bf88";
+        ctx.fillRect(6, 8, 19, 19);
+        ctx.fillRect(3, 15, 4, 7);
+        ctx.fillRect(24, 15, 4, 7);
+        ctx.fillStyle = "#332d43";
+        ctx.fillRect(21, 14, 3, 4);
+        ctx.fillRect(9, 24, 15, 3);
+
+        ctx.fillStyle = "#d77d59";
+        ctx.fillRect(4, 4, 22, 7);
+        ctx.fillRect(8, 1, 14, 4);
+        ctx.fillStyle = "#f2ae71";
+        ctx.fillRect(9, 3, 12, 2);
+
+        ctx.fillStyle = "#ffd773";
+        ctx.fillRect(4, 27, 22, 4);
+        ctx.fillStyle = "#eee7d4";
+        ctx.fillRect(7, 28, 14, 3);
+        ctx.fillStyle = "#6b9b9c";
+        ctx.fillRect(7, 31, 16, 7);
+        ctx.fillStyle = "#8fc7bd";
+        ctx.fillRect(8, 32, 14, 2);
+
+        ctx.fillStyle = "#a96f51";
+        ctx.fillRect(24, 21, 5, 4);
+        ctx.restore();
+      }
+
+      function drawParticles() {
+        for (const particle of particles) {
+          ctx.globalAlpha = Math.max(0, particle.life / particle.maxLife);
+          ctx.fillStyle = particle.color;
+          ctx.fillRect(particle.x - camera.x, particle.y, particle.size, particle.size);
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      function render() {
+        drawSky();
+        drawPlatforms();
+        drawCheckpoints();
+        drawShards();
+        drawEnemies();
+        drawGoal();
+        drawPlayer();
+        drawParticles();
+      }
+
+      function loop(time) {
+        if (state !== "playing") return;
+        const delta = Math.min((time - lastTime) / 1000, .04);
+        lastTime = time;
+        animTime += delta;
+        update(delta);
+        render();
+        if (state === "playing") requestAnimationFrame(loop);
+      }
+
+      playButton.addEventListener("click", () => {
+        if (state === "paused") togglePause();
+        else startGame();
+      });
+
+      pauseButton.addEventListener("click", togglePause);
+
+      window.addEventListener("keydown", (event) => {
+        if (["ArrowLeft", "ArrowRight", "ArrowUp", "Space"].includes(event.code)) event.preventDefault();
+        if (event.code === "KeyP" && (state === "playing" || state === "paused")) {
+          togglePause();
+          return;
+        }
+        keys.add(event.code);
+      });
+
+      window.addEventListener("keyup", (event) => keys.delete(event.code));
+      window.addEventListener("blur", () => {
+        keys.clear();
+        if (state === "playing") togglePause();
+      });
+
+      makeLevel();
+      player = newPlayer();
+      updateHud();
+      render();
+    })();
+  </script>
+</body>
+</html>
